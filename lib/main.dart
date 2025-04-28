@@ -22,7 +22,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const LoginScreen(), // or SignupScreen, as your start page
+      // Home screen logic, this can be replaced with a future check or a route.
+      home: const LoginScreen(),
+      // You can set up routes if needed for better navigation management
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        // Add any other routes for your app screens here
+      },
     );
   }
 }
+

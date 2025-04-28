@@ -1,23 +1,71 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:login_signup/login_screen.dart';
+import 'package:audioplayers/audioplayers.dart'; // Music
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Widget> hearts = []; // List to hold heart widgets
-  int heartCount = 0; // Keeps track of the number of hearts
+  List<Widget> hearts = [];
+  final Random random = Random();
+  final AudioPlayer _audioPlayer = AudioPlayer(); // Music player
 
-  // Function to create a new falling heart
-  void addHeart() {
+  bool isPlaying = false; // Track if music is playing
+
+  void addFallingHeart() {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double randomLeft = random.nextDouble() * (screenWidth - 50);
+
     setState(() {
-      heartCount++;
-      hearts.add(AnimatedHeart()); // Add new heart
+      hearts.add(
+        AnimatedHeart(
+          key: UniqueKey(),
+          leftPosition: randomLeft,
+          onAnimationComplete: () {
+            setState(() {
+              hearts.removeAt(0);
+            });
+          },
+        ),
+      );
     });
+  }
+
+  Future<void> toggleMusic() async {
+    if (isPlaying) {
+      await _audioPlayer.pause(); // Pause when the button is pressed
+    } else {
+      await _audioPlayer.play(
+        AssetSource('music/Espresso - Sabrina Carpenter (1).mp3'), // No "assets/" prefix
+        volume: 1.0,
+      );
+    }
+    setState(() {
+      isPlaying = !isPlaying;
+    });
+  }
+
+
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer.setReleaseMode(ReleaseMode.loop); // Loop music
+  }
+
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // Dispose audio player
+    super.dispose();
   }
 
   @override
@@ -34,15 +82,16 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pop(context); // Go back to the previous screen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
           },
         ),
       ),
       body: Stack(
         children: [
-          // Display hearts
           ...hearts,
-          // Center content
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -53,15 +102,53 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: addHeart,
+                  onPressed: addFallingHeart,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.pink[200], // Consistent with the theme
+                    backgroundColor: Colors.pink[200],
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                   ),
                   child: const Text('Count Hearts', style: TextStyle(fontSize: 16, color: Colors.white)),
                 ),
+                const SizedBox(height: 20),
+
+                // 🌟 Glowing Music Button
+                AnimatedScale(
+                  duration: const Duration(seconds: 1),
+                  scale: isPlaying ? 1.1 : 1.0, // Scale up when playing music
+                  child: AnimatedContainer(
+                    duration: const Duration(seconds: 1),
+                    curve: Curves.easeInOut,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: isPlaying
+                          ? [
+                        BoxShadow(
+                          color: Colors.pinkAccent.withOpacity(0.8),
+                          spreadRadius: 8,
+                          blurRadius: 16,
+                        ),
+                      ]
+                          : [],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: toggleMusic,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isPlaying ? Colors.redAccent : Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                      ),
+                      child: Text(
+                        isPlaying ? 'Pause Music' : 'Play Music',
+                        style: const TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+
+
               ],
             ),
+
           ),
         ],
       ),
@@ -70,53 +157,41 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class AnimatedHeart extends StatefulWidget {
-  const AnimatedHeart({super.key});
+  final double leftPosition;
+  final VoidCallback onAnimationComplete;
+
+  const AnimatedHeart({super.key, required this.leftPosition, required this.onAnimationComplete});
 
   @override
   _AnimatedHeartState createState() => _AnimatedHeartState();
 }
 
-class _AnimatedHeartState extends State<AnimatedHeart> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _animation;
+class _AnimatedHeartState extends State<AnimatedHeart> {
+  double _topPosition = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    );
-    _animation = Tween<Offset>(
-      begin: const Offset(0, -1), // Start from top
-      end: const Offset(0, 1), // Move down
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    ));
-    _controller.forward(); // Start the animation
+    _startAnimation();
+  }
+
+  void _startAnimation() {
+    Future.delayed(const Duration(milliseconds: 50), () {
+      setState(() {
+        _topPosition = MediaQuery.of(context).size.height;
+      });
+    });
+
+    Future.delayed(const Duration(seconds: 3), widget.onAnimationComplete);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: -100, // Start offscreen, above the app bar
-      left: (MediaQuery.of(context).size.width * (0.5 + (0.5 - (0.5 - (0.5 + 0.5))))) -
-          35, // Random X-position for each heart
-      child: SlideTransition(
-        position: _animation,
-        child: Icon(
-          Icons.favorite,
-          size: 40,
-          color: Colors.pink[200],
-        ),
-      ),
+    return AnimatedPositioned(
+      duration: const Duration(seconds: 3),
+      top: _topPosition,
+      left: widget.leftPosition,
+      child: Image.asset('assets/images/heart.png', width: 50, height: 50),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 }

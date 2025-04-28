@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <service android:name="com.ryanheise.audioservice.AudioService" android:permission="android.permission.BLUETOOTH_ADMIN"/>
+
     <application
         android:label="login_signup"
         android:name="${applicationName}"
