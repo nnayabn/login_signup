@@ -14,9 +14,16 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Widget> hearts = [];
   final Random random = Random();
-  final AudioPlayer _audioPlayer = AudioPlayer(); // Music player
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
-  bool isPlaying = false; // Track if music is playing
+  bool isPlaying = false;
+  String? currentSong;
+
+  final List<String> songs = [
+    'music/Espresso - Sabrina Carpenter (1).mp3',
+    'music/Blue-song.mp3', // <-- Add more song files here
+    'music/co2.mp3',
+  ];
 
   void addFallingHeart() {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -37,34 +44,60 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> playSong(String songPath) async {
+    await _audioPlayer.stop(); // Stop previous if any
+    await _audioPlayer.play(AssetSource(songPath), volume: 1.0);
+    setState(() {
+      isPlaying = true;
+      currentSong = songPath;
+    });
+  }
+
   Future<void> toggleMusic() async {
     if (isPlaying) {
-      await _audioPlayer.pause(); // Pause when the button is pressed
+      await _audioPlayer.pause();
+    } else if (currentSong != null) {
+      await _audioPlayer.resume();
     } else {
-      await _audioPlayer.play(
-        AssetSource('music/Espresso - Sabrina Carpenter (1).mp3'), // No "assets/" prefix
-        volume: 1.0,
-      );
+      await playSong(songs[0]); // Default play first song if nothing selected
     }
     setState(() {
       isPlaying = !isPlaying;
     });
   }
 
-
-
-
+  void openSongPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return ListView.builder(
+          itemCount: songs.length,
+          itemBuilder: (context, index) {
+            String songName = songs[index].split('/').last;
+            return ListTile(
+              leading: const Icon(Icons.music_note, color: Colors.pink),
+              title: Text(songName),
+              onTap: () {
+                Navigator.pop(context); // Close bottom sheet
+                playSong(songs[index]);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-    _audioPlayer.setReleaseMode(ReleaseMode.loop); // Loop music
+    _audioPlayer.setReleaseMode(ReleaseMode.loop);
   }
-
 
   @override
   void dispose() {
-    _audioPlayer.dispose(); // Dispose audio player
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -73,12 +106,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.pink[200],
-        title: const Center(
-          child: Text(
-            'Home',
-            style: TextStyle(color: Colors.white),
-          ),
+        title: const Text(
+          'Home',
+          style: TextStyle(color: Colors.white),
         ),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
@@ -88,6 +120,12 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.library_music, color: Colors.white),
+            onPressed: openSongPicker, // Open song picker
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -114,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 🌟 Glowing Music Button
                 AnimatedScale(
                   duration: const Duration(seconds: 1),
-                  scale: isPlaying ? 1.1 : 1.0, // Scale up when playing music
+                  scale: isPlaying ? 1.1 : 1.0,
                   child: AnimatedContainer(
                     duration: const Duration(seconds: 1),
                     curve: Curves.easeInOut,
@@ -144,17 +182,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-
-
               ],
             ),
-
           ),
         ],
       ),
     );
   }
 }
+
 
 class AnimatedHeart extends StatefulWidget {
   final double leftPosition;
