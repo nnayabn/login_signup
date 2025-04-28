@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  'Welcome to the Home Screen!',
+                  'Welcome to the HeartBeats!',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.pink),
                 ),
                 const SizedBox(height: 20),
